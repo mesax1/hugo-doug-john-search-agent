@@ -122,7 +122,7 @@ def main():
             return bm25_search(query, index, k=k)
     elif args.type == "advanced":
         def search_fn(query: str, k: int = 10):
-            return advanced_search(index, title_query=query, description_query=query, k=k)
+            return advanced_search(index, title_query=query, description_query=query, k=k)["results"]
     else:
         from search_agent.agent import agent_search
         def search_fn(query: str, k: int = 10):

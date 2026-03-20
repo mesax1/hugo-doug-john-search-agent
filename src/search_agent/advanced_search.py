@@ -1,7 +1,7 @@
 """BM25 keyword search with hierarchical category indexing over the WANDS product catalog."""
 
-import json
 import string
+from collections import Counter
 
 import numpy as np
 import pandas as pd
@@ -61,6 +61,10 @@ TITLE_BOOST = 10.0
 DESCRIPTION_BOOST = 1.0
 CATEGORY_BOOST = 5.0
 
+# Facet configuration
+MIN_FACET_COUNT = 20
+MAX_FACETS = 15
+
 
 def build_index(products: pd.DataFrame) -> pd.DataFrame:
     """Add searcharray BM25 index columns to a products DataFrame.
@@ -90,7 +94,7 @@ def advanced_search(
     description_query: str | None = None,
     category_filter: str | None = None,
     k: int = 10,
-) -> list[dict]:
+) -> dict:
     """BM25 keyword search over an indexed product DataFrame with per-field queries.
 
     Args:
@@ -103,8 +107,12 @@ def advanced_search(
         k: number of results to return
 
     Returns:
-        List of dicts with keys: product_id, title, description, category, score
-        — ordered by score desc.
+        Dict with keys:
+          results: list of dicts (product_id, title, description, category, score)
+                   ordered by score desc
+          facets:  list of (category_path, count) tuples for the matched set,
+                   pruned so parent paths that have the same count as a child
+                   are omitted, sorted alphabetically, capped at MAX_FACETS
     """
     scores = np.zeros(len(index))
 
@@ -123,7 +131,7 @@ def advanced_search(
         scores[~valid_mask] = 0.0
 
     if not scores.any():
-        return []
+        return {"results": [], "facets": []}
 
     top_k_idx = np.argsort(-scores)[:k]
     results = []
@@ -138,7 +146,31 @@ def advanced_search(
             "category": "/".join(p.strip() for p in row["category"].split("/")),
             "score": float(scores[idx]),
         })
-    return results
+
+    # Collect facets from all matched rows (valid_mask), not just top-k
+    all_terms: Counter = Counter()
+    for elem in index.loc[valid_mask, "category_idx"]:
+        all_terms.update(k for k, _v in elem.terms())
+
+    # Prune parent paths whose count equals a child's count (they're redundant)
+    sorted_terms = sorted(
+        [(term, cnt) for term, cnt in all_terms.items() if cnt >= MIN_FACET_COUNT and term],
+        key=lambda x: x[0],
+    )
+    redundant = set()
+    for i in range(len(sorted_terms) - 1):
+        term, cnt = sorted_terms[i]
+        next_term, next_cnt = sorted_terms[i + 1]
+        if cnt == next_cnt and next_term.startswith(term + "/"):
+            redundant.add(term)
+
+    facets = sorted(
+        [(term, cnt) for term, cnt in all_terms.items()
+         if cnt >= MIN_FACET_COUNT and term and term not in redundant],
+        key=lambda x: x[0],
+    )[:MAX_FACETS]
+
+    return {"results": results, "facets": facets}
 
 
 # ---------------------------------------------------------------------------
@@ -162,10 +194,12 @@ if __name__ == "__main__":
     ]
 
     for query, cat_filter in demo_queries:
-        results = advanced_search(index, title_query=query, description_query=query, category_filter=cat_filter, k=5)
+        output = advanced_search(index, title_query=query, description_query=query, category_filter=cat_filter, k=5)
         filter_str = f" [filter: {cat_filter}]" if cat_filter else ""
         print(f"Query: '{query}'{filter_str}")
-        for r in results:
-            # print(f"  [{r['score']:6.2f}] ({r['category']}) {r['title']}")
-            print(json.dumps(r, indent=2, default=str))
+        for r in output["results"]:
+            print(f"  [{r['score']:6.2f}] ({r['category']}) {r['title']}")
+        print("  Facets:")
+        for term, cnt in output["facets"]:
+            print(f"    {term} ({cnt})")
         print()
