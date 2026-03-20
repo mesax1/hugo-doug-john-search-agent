@@ -101,8 +101,8 @@ def print_message(
         else:
             # Default: show each product on one line, truncate long result
             lines = output.split("\n")
-            preview = "\n  ".join(lines[:15])
-            suffix = f"\n  ... ({len(lines) - 15} more)" if len(lines) > 15 else ""
+            preview = "\n  ".join(lines[:30])
+            suffix = f"\n  ... ({len(lines) - 30} more)" if len(lines) > 30 else ""
             print(f"{C.ORANGE}{C.BOLD}[{idx}] TOOL RESULT:{C.RESET}\n{C.ORANGE}  {preview}{suffix}{C.RESET}")
 
     elif t == "message_output_item":

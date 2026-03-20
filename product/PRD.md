@@ -89,3 +89,26 @@ Wraps the normal search behind an LLM agent loop.
 - Agentic search measurably improves NDCG over baseline
 - Both plug into the same eval harness with no code changes to the harness
 - Code is clean enough to use as a teaching/demo artifact
+
+## Still to do
+- create a new branch that does more complex search that has inputs of name, description, and category
+
+# Talk outline
+- State Goals (below) and big lessons 1) it's (probably) easy to wrap a search API in an agent and get better results 2) but you need to have evals to make sure you're moving in the right direction
+- Pieces
+  – we have a search API over WANDS dataset. keyword in, product id's out
+  - we have an NDGC evaluator that looks at the labeled "truth" items and provides a score
+  - we also have a nice tool that pretty prints out agent traces - useful for debugging and updating agent
+- Build an agent
+  - it uses the search api as a tool
+  - it returns a nice presentation of the search results
+  - it has a simple system message
+  - IMPORTANT - it logs out the 
+- Evaluation explanation (while John is waiting for Claude Code to build agent)
+  - What is NDGC
+  - Run NDGC against plain search
+  - Run NDGC against agent search
+  - Compare
+- Fix any problems by reviewing the traces.
+- If extra time, then repeat the above with "hard mode" where we introduce fields and query syntax (better demo for the eval-optimize loop - but also might not optimize well)
+- Talk about how we can Ralph it - create an automated outer loop powered by claude code that does all this stuff for us

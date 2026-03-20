@@ -80,10 +80,12 @@ def make_agent(index: pd.DataFrame, model: str | None = None) -> Agent:
         results = bm25_search(query, index, k=10)
         if not results:
             return "No results found."
-        lines = [
-            f"product_id={r['product_id']} | {r['title']} | {r['category']}"
-            for r in results
-        ]
+        lines = []
+        for r in results:
+            lines.append(f"product_id={r['product_id']} | {r['title']}")
+            lines.append(f"category: {r['category']}")
+            lines.append(r['description'])
+            lines.append("")
         return "\n".join(lines)
 
     return Agent(

@@ -74,7 +74,6 @@ def main():
     parser.add_argument(
         "--type",
         choices=["plain", "agent"],
-        default="plain",
         help="Search type: 'plain' (BM25) or 'agent' (LLM agentic). Default: plain",
     )
     parser.add_argument(
