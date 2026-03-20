@@ -45,6 +45,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Agent trace logs
+logs/
+
 # Test / coverage
 .pytest_cache/
 .coverage
